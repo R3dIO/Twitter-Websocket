@@ -1,0 +1,33 @@
+let getResponse(operataion, context) =
+    let subresponse input = 
+        match operataion with 
+        | "Register" -> 
+                input 
+                |> fromJson<Register>
+                |> registerNewUser
+        | "Login" -> 
+                input 
+                |> fromJson<Login>
+                |> loginuser
+        | "Logout" -> 
+                input 
+                |> fromJson<Logout>
+                |> logoutuser
+        | "NewTweet" -> 
+                input 
+                |> fromJson<NewTweet>
+                |> respTweet
+        | "Follow" -> 
+                input 
+                |> fromJson<Follower>
+                |> addFollower 
+
+    request (fun r ->
+    r.rawForm
+    |> getString
+    |> subresponse
+    |> JsonConvert.SerializeObject
+    |> OK
+    )
+    >=> setMimeType "application/json"
+    >=> setCORSHeaders
