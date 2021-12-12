@@ -71,10 +71,9 @@ let addUser (user: Register) =
     else
         getResponseMessage("User Already Registerd", [], 1, true)
 
-
 let loginuser (user: Login) = 
     printfn $"Received Login Request from {user.UserName} as {user}"  
-    if checkUserExistance(user.UserName) then
+    if not (checkUserExistance(user.UserName)) then
         getResponseMessage("User not found. Please Register", [], 0, true)
     else
         let userObj =  users.TryFind(user.UserName)
