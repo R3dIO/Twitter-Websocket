@@ -1,4 +1,6 @@
-﻿open System
+﻿module Main
+
+open System
 open System.Collections.Generic
 open Suave
 open Suave.Filters
@@ -14,7 +16,13 @@ open Akka.FSharp
 open Suave.Sockets
 open Suave.Sockets.Control
 open Suave.WebSocket
+open Datatype
 
+type LiveUserHandlerMsg =
+    | SendTweet of WebSocket * NewTweet
+    | SendMention of WebSocket * NewTweet
+    | SelfTweet of WebSocket * NewTweet
+    | Following of WebSocket * string
 let system = ActorSystem.Create("TwitterEngine")
 
 let setCORSHeaders =
@@ -29,79 +37,34 @@ let mutable mentions = Map.empty
 let mutable hashTags = Map.empty
 let mutable websockmap = Map.empty
 
-
-//types
-type NewAnswer =
-    {
-        Text: string
-    }
-type Answer = 
-    {
-        Text: string
-        AnswerId: int
-    }
-
-
-type RespMsg =
-    {
-        Comment: string
-        Content: list<string>
-        status: int
-        error: bool
-    }
-      
-
-type Register =
-    {
-        UserName: string
-        Password: string
-    }
-
-type Login =
-    {
-        UserName: string
-        Password: string
-    }
-
-type Logout =
-    {
-        UserName: string
-    }
-
-type Follower = 
-    {
-        UserName: string
-        Following: string
-    }
-
-type NewTweet =
-    {
-        Tweet: string
-        UserName: string
-    }
 let buildByteResponseToWS (message:string) =
     message
     |> System.Text.Encoding.ASCII.GetBytes
     |> ByteSegment
 
+let checkUserExistance username = users.TryFind(username) <> None
+let isOnline username = activeUsers.TryFind(username) <> None
+let isUserLoggedIn username = 
+    if activeUsers.TryFind(username) <> None then 1 // Logged In
+    else 
+        if users.TryFind(username) = None then -1 // User Doesn't Exsist
+        else 0 // User Exsists but not logged in 
 
 let addUser (user: Register) =
-    let temp = users.TryFind(user.UserName)
-    if temp = None then
+    if not (checkUserExistance(user.UserName)) then
         users <- users.Add(user.UserName,user.Password)
-        {Comment = "Registration Succesful";Content=[];status=1;error=false}
+        {Comment = "User Registerd Succesfully";Content=[];status=1;error=false}
     else
-        {Comment = "User Already Exsists";Content=[];status=1;error=true}
+        {Comment = "User Already Registerd";Content=[];status=1;error=true}
 
 let loginuser (user: Login) = 
-    printfn "Received Login Request from %s as %A" user.UserName user
-    let temp = users.TryFind(user.UserName)
-    if temp = None then
+    printfn $"Received Login Request from {user.UserName} as {user}"  
+    if checkUserExistance(user.UserName) then
         {Comment = "User Doesn't exsist!!. Please Register ";Content=[];status=0;error=true}
     else
-        if temp.Value.CompareTo(user.Password) = 0 then
-            let temp1 = activeUsers.TryFind(user.UserName)
-            if temp1 = None then
+        let userObj =  users.TryFind(user.UserName)
+        if userObj.Value.CompareTo(user.Password) = 0 then
+            if not (isOnline(user.UserName)) then
                 activeUsers <- activeUsers.Add(user.UserName,true)
                 {Comment = "Logged In Succesfully";Content=[];status=2;error=false}
             else
@@ -110,51 +73,25 @@ let loginuser (user: Login) =
             {Comment = "Wrong Password";Content=[];status=1;error=true}
 
 let logoutuser (user:Logout) = 
-    printfn "Received logout Request from %s as %A" user.UserName user
+    printfn $"Received Logout Request from {user.UserName} as {user}"  
     let temp = users.TryFind(user.UserName)
-    if temp = None then
-        {Comment = "User Doesn't exsist!!. Please Register ";Content=[];status=0;error=true}
+    if not (checkUserExistance(user.UserName)) then
+        {Comment = "User not found; Please Register ";Content=[];status=0;error=true}
     else
-        let temp1 = activeUsers.TryFind(user.UserName)
-        if temp1 = None then
-            {Comment = "User Not Logged In";Content=[];status=1;error=true}
+        if not (isOnline(user.UserName)) then
+            {Comment = "User Not Logged In; Please Log In";Content=[];status=1;error=true}
         else
             activeUsers <- activeUsers.Remove(user.UserName)
             {Comment = "User Logged out Succesfully";Content=[];status=1;error=false}
 
-let isUserLoggedIn username = 
-    let temp = activeUsers.TryFind(username)
-    if temp <> None then
-        1 // Logged In
-    else
-        let temp1 = users.TryFind(username)
-        if temp1 = None then
-            -1 // User Doesn't Exsist
-        else
-            0 // User Exsists but not logged in 
-
-let checkUserExsistance username =
-    let temp = users.TryFind(username)
-    temp <> None
-
-
-
-type LiveUserHandlerMsg =
-    | SendTweet of WebSocket*NewTweet
-    | SendMention of WebSocket* NewTweet
-    | SelfTweet of WebSocket * NewTweet
-    | Following of WebSocket * string
-
 let liveUserHandler (mailbox:Actor<_>) = 
     let rec loop() = actor{
         let! msg = mailbox.Receive()
+        let mutable response = ""
         match msg with
         |SelfTweet(ws,tweet)->  let response = "You have tweeted '"+tweet.Tweet+"'"
                                 let byteResponse = buildByteResponseToWS response
-                                // printfn "Sending data to %A" ws 
-                                let s =socket{
-                                                do! ws.send Text byteResponse true
-                                                }
+                                let s =socket { do! ws.send Text byteResponse true }
                                 Async.StartAsTask s |> ignore
         |SendTweet(ws,tweet)->
                                 let response = tweet.UserName+" has tweeted '"+tweet.Tweet+"'"
@@ -184,7 +121,6 @@ let liveUserHandler (mailbox:Actor<_>) =
         return! loop()
     }
     loop()
-    
 let liveUserHandlerRef = spawn system "luref" liveUserHandler
 
 let tweetParser (tweet:NewTweet) =
@@ -192,7 +128,7 @@ let tweetParser (tweet:NewTweet) =
     for i in splits do
         if i.StartsWith "@" then
             let temp = i.Split '@'
-            if checkUserExsistance temp.[1] then
+            if checkUserExistance temp.[1] then
                 let temp1 = mentions.TryFind(temp.[1])
                 if temp1 = None then
                     let mutable mp = Map.empty
@@ -228,7 +164,7 @@ let addFollower (follower: Follower) =
     printfn "Received Follower Request from %s as %A" follower.UserName follower
     let status = isUserLoggedIn follower.UserName
     if status = 1 then
-        if (checkUserExsistance follower.Following) then
+        if (checkUserExistance follower.Following) then
             let temp = followers.TryFind(follower.Following)
             let temp1 = websockmap.TryFind(follower.UserName)
             if temp = None then
@@ -276,12 +212,6 @@ let addTweetToFollowers (tweet: NewTweet) =
             if temp2 <> None then
                 liveUserHandlerRef <! SendTweet(temp2.Value,tweet)
 
-type tweetHandlerMsg =
-    | AddTweetMsg of NewTweet
-    | AddTweetToFollowersMsg of NewTweet
-    | TweetParserMsg of NewTweet
-
-
 let tweetHandler (mailbox:Actor<_>) =
     let rec loop() = actor{
         let! msg = mailbox.Receive()
@@ -301,12 +231,9 @@ let tweetHandlerRef = spawn system "thref" tweetHandler
 let addTweetToUser (tweet: NewTweet) =
     let status = isUserLoggedIn tweet.UserName
     if status = 1 then
-        tweetHandlerRef <! AddTweetMsg(tweet)
-        // addTweet tweet
-        tweetHandlerRef <! AddTweetToFollowersMsg(tweet)
-        // addTweetToFollowers tweet
-        tweetHandlerRef <! TweetParserMsg(tweet)
-        // tweetParser tweet
+        tweetHandlerRef <! AddTweetMsg(tweet) // addTweet tweet
+        tweetHandlerRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
+        tweetHandlerRef <! TweetParserMsg(tweet) // tweetParser tweet
         {Comment = "Tweeted Succesfully";Content=[];status=2;error=false}
     elif status = 0 then
         {Comment = "Please Login";Content=[];status=1;error=true}
@@ -373,7 +300,6 @@ let respTweet (tweet: NewTweet) =
 
 //low level functions
 let getString (rawForm: byte[]) =
-    // printfn "%A" (System.Text.Encoding.UTF8.GetString(rawForm))
     System.Text.Encoding.UTF8.GetString(rawForm)
 
 let getJsonObject<'a> json =
@@ -405,7 +331,7 @@ let gethashtags username hashtag =
     >=> setMimeType "application/json"
     >=> setCORSHeaders
 
-let getResponse (operataion) =
+let postResponse (operataion) =
     let subresponse input = 
         match operataion with 
         | "Register" -> 
@@ -484,7 +410,7 @@ let app =
             allow_cors
             GET >=> choose
                 [ 
-                path "/" >=> OK "Hello World" 
+                path "/" >=> OK "Server is up and Running" 
                 pathScan "/gettweets/%s" (fun username -> (gettweets username))
                 pathScan "/getmentions/%s" (fun username -> (getmentions username))
                 pathScan "/gethashtags/%s/%s" (fun (username,hashtag) -> (gethashtags username hashtag))
@@ -492,11 +418,11 @@ let app =
 
             POST >=> choose
                 [   
-                path "/register" >=> (fun context -> context |> getResponse("Register"))
-                path "/login" >=> (fun context -> context |> getResponse("Login"))
-                path "/logout" >=> (fun context -> context |> getResponse("Logout"))
-                path "/newtweet" >=> (fun context -> context |> getResponse("NewTweet")) 
-                path "/follow" >=> (fun context -> context |> getResponse("Follow"))
+                path "/register" >=> (fun context -> context |> postResponse("Register"))
+                path "/login" >=> (fun context -> context |> postResponse("Login"))
+                path "/logout" >=> (fun context -> context |> postResponse("Logout"))
+                path "/newtweet" >=> (fun context -> context |> postResponse("NewTweet")) 
+                path "/follow" >=> (fun context -> context |> postResponse("Follow"))
               ]
 
         ]
