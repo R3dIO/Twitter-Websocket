@@ -42,81 +42,83 @@ let buildByteResponseToWS (message:string) =
     |> System.Text.Encoding.ASCII.GetBytes
     |> ByteSegment
 
+let getString (rawForm: byte[]) =
+    System.Text.Encoding.UTF8.GetString(rawForm)
+
+let getJsonObject<'a> json =
+    JsonConvert.DeserializeObject(json, typeof<'a>) :?> 'a
+
 let checkUserExistance username = users.TryFind(username) <> None
 let isOnline username = activeUsers.TryFind(username) <> None
+
 let isUserLoggedIn username = 
     if activeUsers.TryFind(username) <> None then 1 // Logged In
     else 
         if users.TryFind(username) = None then -1 // User Doesn't Exsist
         else 0 // User Exsists but not logged in 
 
+let getResponseMessage (comment, content, status, errorStatus) =
+    let response = {Comment = comment; Content=content; status=status; error=errorStatus}
+    response
+
 let addUser (user: Register) =
     if not (checkUserExistance(user.UserName)) then
         users <- users.Add(user.UserName,user.Password)
-        {Comment = "User Registerd Succesfully";Content=[];status=1;error=false}
+        getResponseMessage("User Registerd Succesfully", [], 1, false)
     else
-        {Comment = "User Already Registerd";Content=[];status=1;error=true}
+        getResponseMessage("User Already Registerd", [], 1, true)
+
 
 let loginuser (user: Login) = 
     printfn $"Received Login Request from {user.UserName} as {user}"  
     if checkUserExistance(user.UserName) then
-        {Comment = "User Doesn't exsist!!. Please Register ";Content=[];status=0;error=true}
+        getResponseMessage("User not found. Please Register", [], 0, true)
     else
         let userObj =  users.TryFind(user.UserName)
         if userObj.Value.CompareTo(user.Password) = 0 then
             if not (isOnline(user.UserName)) then
                 activeUsers <- activeUsers.Add(user.UserName,true)
-                {Comment = "Logged In Succesfully";Content=[];status=2;error=false}
+                getResponseMessage("Logged In Succesfully", [], 2, false)
             else
-                {Comment = "Already Logged In";Content=[];status=2;error=true}
+                getResponseMessage("Already Logged In", [], 2, true)
         else
-            {Comment = "Wrong Password";Content=[];status=1;error=true}
+            getResponseMessage("Incorrect Password", [], 1, true)
 
 let logoutuser (user:Logout) = 
     printfn $"Received Logout Request from {user.UserName} as {user}"  
     let temp = users.TryFind(user.UserName)
     if not (checkUserExistance(user.UserName)) then
-        {Comment = "User not found; Please Register ";Content=[];status=0;error=true}
+        getResponseMessage("User not found; Please Register ", [], 0, true)
     else
         if not (isOnline(user.UserName)) then
-            {Comment = "User Not Logged In; Please Log In";Content=[];status=1;error=true}
+            getResponseMessage("User Not Logged In; Please Log In", [], 1, true)
         else
             activeUsers <- activeUsers.Remove(user.UserName)
-            {Comment = "User Logged out Succesfully";Content=[];status=1;error=false}
+            getResponseMessage("User Logged out Succesfully", [], 1, false)
 
 let liveUserHandler (mailbox:Actor<_>) = 
     let rec loop() = actor{
         let! msg = mailbox.Receive()
         let mutable response = ""
         match msg with
-        |SelfTweet(ws,tweet)->  let response = "You have tweeted '"+tweet.Tweet+"'"
+        |SelfTweet(ws,tweet)->  let response = $"You have tweeted '{tweet.Tweet}'"
                                 let byteResponse = buildByteResponseToWS response
-                                let s =socket { do! ws.send Text byteResponse true }
+                                let s = socket { do! ws.send Text byteResponse true }
                                 Async.StartAsTask s |> ignore
         |SendTweet(ws,tweet)->
-                                let response = tweet.UserName+" has tweeted '"+tweet.Tweet+"'"
+                                let response = $"{tweet.UserName} has tweeted '{tweet.Tweet}'"
                                 let byteResponse = buildByteResponseToWS response
-                                // printfn "Sending data to %A" ws 
-                                let s =socket{
-                                                do! ws.send Text byteResponse true
-                                                }
+                                let s = socket{ do! ws.send Text byteResponse true}
                                 Async.StartAsTask s |> ignore
-                                // printfn "%A" err
         |SendMention(ws,tweet)->
-                                let response = tweet.UserName+" mentioned you in tweet '"+tweet.Tweet+"'"
+                                let response = $"{tweet.UserName} mentioned you in tweet '{tweet.Tweet}'"
                                 let byteResponse = buildByteResponseToWS response
-                                // printfn "Sending data to %A" ws 
-                                let s =socket{
-                                                do! ws.send Text byteResponse true
-                                                }
+                                let s = socket{ do! ws.send Text byteResponse true}
                                 Async.StartAsTask s |> ignore
         |Following(ws,msg)->
                                 let response = msg
                                 let byteResponse = buildByteResponseToWS response
-                                // printfn "Sending data to %A" ws 
-                                let s =socket{
-                                                do! ws.send Text byteResponse true
-                                                }
+                                let s = socket{ do! ws.send Text byteResponse true}
                                 Async.StartAsTask s |> ignore
         return! loop()
     }
@@ -172,24 +174,24 @@ let addFollower (follower: Follower) =
                 lst.Add(follower.UserName)
                 followers <- followers.Add(follower.Following,lst)
                 if temp1 <> None then
-                    liveUserHandlerRef <! Following(temp1.Value,"You are now following: "+follower.Following)
-                {Comment = "Sucessfully Added to the Following list";Content=[];status=2;error=false}
+                    liveUserHandlerRef <! Following(temp1.Value,$"You are now following: {follower.Following}")
+                getResponseMessage("Sucessfully Added to the Following list", [], 2, false)
             else
                 if temp.Value.Exists( fun x -> x.CompareTo(follower.UserName) = 0 ) then
                     if temp1 <> None then
-                        liveUserHandlerRef <! Following(temp1.Value,"You are already following: "+follower.Following)
-                    {Comment = "You are already Following"+follower.Following;Content=[];status=2;error=true}
+                        liveUserHandlerRef <! Following(temp1.Value,$"You are already following: {follower.Following}")
+                    getResponseMessage($"You are already Following {follower.Following}", [], 2, true)
                 else
                     temp.Value.Add(follower.UserName)
                     if temp1 <> None then
-                        liveUserHandlerRef <! Following(temp1.Value,"You are now following: "+follower.Following)
-                    {Comment = "Sucessfully Added to the Following list";Content=[];status=2;error=false}
+                        liveUserHandlerRef <! Following(temp1.Value,$"You are now following: {follower.Following}")
+                    getResponseMessage($"Sucessfully Added to the Following list", [], 2, false)
         else
-            {Comment = "Follower "+follower.Following+" doesn't exsist";Content=[];status=2;error=true}
+            getResponseMessage($"Follower {follower.Following} doesn't exsist", [], 2, true)
     elif status = 0 then
-        {Comment = "Please Login";Content=[];status=1;error=true}
+        getResponseMessage($"Please Login", [], 1, true)
     else
-        {Comment = "User Doesn't Exsist!!Please Register";Content=[];status=0;error=true}
+        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
 
 let addTweet (tweet: NewTweet) =
     let temp = tweetOwner.TryFind(tweet.UserName)
@@ -234,45 +236,45 @@ let addTweetToUser (tweet: NewTweet) =
         tweetHandlerRef <! AddTweetMsg(tweet) // addTweet tweet
         tweetHandlerRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
         tweetHandlerRef <! TweetParserMsg(tweet) // tweetParser tweet
-        {Comment = "Tweeted Succesfully";Content=[];status=2;error=false}
+        getResponseMessage($"Tweeted Succesfully", [], 2, false)
     elif status = 0 then
-        {Comment = "Please Login";Content=[];status=1;error=true}
+        getResponseMessage($"Please Login", [], 1, true)
     else
-        {Comment = "User Doesn't Exsist!!Please Register";Content=[];status=0;error=true}
+        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
 
 let getTweets username =
     let status = isUserLoggedIn username
     if status = 1 then
         let temp = tweetOwner.TryFind(username)
         if temp = None then
-            {Comment = "No Tweets";Content=[];status=2;error=false}
+            getResponseMessage($"No Tweets", [], 2, false)
         else
             let len = Math.Min(10,temp.Value.Count)
-            let res = [for i in 1 .. len do yield(temp.Value.[i-1])] 
-            {Comment = "Get Tweets done Succesfully";Content=res;status=2;error=false}
+            let res = [for i in 1 .. len do yield(temp.Value.[i-1])]
+            getResponseMessage($"Get Tweets done Succesfully", res, 2, false)
     elif status = 0 then
-        {Comment = "Please Login";Content=[];status=1;error=true}
+        getResponseMessage($"Please Login", [], 1, true)
     else
-        {Comment = "User Doesn't Exsist!!Please Register";Content=[];status=0;error=true}
+        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
 
 let getMentions username = 
     let status = isUserLoggedIn username
     if status = 1 then
         let temp = mentions.TryFind(username)
         if temp = None then
-            {Comment = "No Mentions";Content=[];status=2;error=false}
+            getResponseMessage($"No Mentions", [], 2, false)
         else
             let res = new List<string>()
             for i in temp.Value do
                 for j in i.Value do
                     res.Add(j)
             let len = Math.Min(10,res.Count)
-            let res1 = [for i in 1 .. len do yield(res.[i-1])] 
-            {Comment = "Get Mentions done Succesfully";Content=res1;status=2;error=false}
+            let res1 = [for i in 1 .. len do yield(res.[i-1])]
+            getResponseMessage($"Get Mentions done Succesfully", res1, 2, false)
     elif status = 0 then
-        {Comment = "Please Login";Content=[];status=1;error=true}
+        getResponseMessage($"Please Login", [], 1, true)
     else
-        {Comment = "User Doesn't Exsist!!Please Register";Content=[];status=0;error=true}
+        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
 
 let getHashTags username hashtag =
     let status = isUserLoggedIn username
@@ -280,15 +282,15 @@ let getHashTags username hashtag =
         printf "%s" hashtag
         let temp = hashTags.TryFind(hashtag)
         if temp = None then
-            {Comment = "No Tweets with this hashtag found";Content=[];status=2;error=false}
+            getResponseMessage($"No Tweets with this hashtag found", [], 2, false)
         else
             let len = Math.Min(10,temp.Value.Count)
             let res = [for i in 1 .. len do yield(temp.Value.[i-1])] 
-            {Comment = "Get Hashtags done Succesfully";Content=res;status=2;error=false}
+            getResponseMessage($"Get Hashtags done Succesfully", res, 2, false)
     elif status = 0 then
-        {Comment = "Please Login";Content=[];status=1;error=true}
+        getResponseMessage($"Please Login", [], 1, true)
     else
-        {Comment = "User Doesn't Exsist!!Please Register";Content=[];status=0;error=true}
+        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
 
 let registerNewUser (user: Register) =
     printfn "Received Register Request from %s as %A" user.UserName user
@@ -297,13 +299,6 @@ let registerNewUser (user: Register) =
 let respTweet (tweet: NewTweet) =
     printfn "Received Tweet Request from %s as %A" tweet.UserName tweet
     addTweetToUser tweet
-
-//low level functions
-let getString (rawForm: byte[]) =
-    System.Text.Encoding.UTF8.GetString(rawForm)
-
-let getJsonObject<'a> json =
-    JsonConvert.DeserializeObject(json, typeof<'a>) :?> 'a
 
 //bridge functions between routes
 
