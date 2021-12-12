@@ -51,15 +51,18 @@ let getJsonObject<'a> json =
 let checkUserExistance username = users.TryFind(username) <> None
 let isOnline username = activeUsers.TryFind(username) <> None
 
-let isUserLoggedIn username = 
-    if activeUsers.TryFind(username) <> None then 1 // Logged In
-    else 
-        if users.TryFind(username) = None then -1 // User Doesn't Exsist
-        else 0 // User Exsists but not logged in 
-
 let getResponseMessage (comment, content, status, errorStatus) =
     let response = {Comment = comment; Content=content; status=status; error=errorStatus}
     response
+
+let isUserLoggedIn username = 
+    if activeUsers.TryFind(username) <> None then // User is Logged In
+        (getResponseMessage($"", [], 0, true), true) 
+    else 
+        if users.TryFind(username) = None then  // User Doesn't Exsist
+            (getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true), false)
+        else // User Exsists but not logged in         
+            (getResponseMessage($"Please Login", [], 1, true), false) 
 
 let addUser (user: Register) =
     if not (checkUserExistance(user.UserName)) then
@@ -125,6 +128,31 @@ let liveUserHandler (mailbox:Actor<_>) =
     loop()
 let liveUserHandlerRef = spawn system "luref" liveUserHandler
 
+let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
+    socket {
+        let mutable loop = true
+
+        while loop do
+              let! msg = webSocket.read()
+
+              match msg with
+              | (Text, data, true) ->
+                let strData = UTF8.toString data 
+                if strData.StartsWith("UserName:") then
+                    let username = strData.Split(':').[1]
+                    websockmap <- websockmap.Add(username,webSocket)
+                    printfn $"connected to {username} websocket"
+                else
+                    let response = $"Response to {strData}"
+                    let byteResponse = buildByteResponseToWS response
+                    do! webSocket.send Text byteResponse true
+              | (Close, _, _) ->
+                let emptyResponse = [||] |> ByteSegment
+                do! webSocket.send Close emptyResponse true
+                loop <- false
+              | _ -> ()
+    }
+
 let tweetParser (tweet:NewTweet) =
     let splits = (tweet.Tweet.Split ' ')
     for i in splits do
@@ -164,8 +192,8 @@ let tweetParser (tweet:NewTweet) =
 
 let addFollower (follower: Follower) =
     printfn "Received Follower Request from %s as %A" follower.UserName follower
-    let status = isUserLoggedIn follower.UserName
-    if status = 1 then
+    let (resp, status) = isUserLoggedIn follower.UserName
+    if status then
         if (checkUserExistance follower.Following) then
             let temp = followers.TryFind(follower.Following)
             let temp1 = websockmap.TryFind(follower.UserName)
@@ -188,10 +216,8 @@ let addFollower (follower: Follower) =
                     getResponseMessage($"Sucessfully Added to the Following list", [], 2, false)
         else
             getResponseMessage($"Follower {follower.Following} doesn't exsist", [], 2, true)
-    elif status = 0 then
-        getResponseMessage($"Please Login", [], 1, true)
     else
-        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
+        resp
 
 let addTweet (tweet: NewTweet) =
     let temp = tweetOwner.TryFind(tweet.UserName)
@@ -231,20 +257,18 @@ let tweetHandler (mailbox:Actor<_>) =
 let tweetHandlerRef = spawn system "thref" tweetHandler
 
 let addTweetToUser (tweet: NewTweet) =
-    let status = isUserLoggedIn tweet.UserName
-    if status = 1 then
+    let (resp,status) = isUserLoggedIn tweet.UserName
+    if status then
         tweetHandlerRef <! AddTweetMsg(tweet) // addTweet tweet
         tweetHandlerRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
         tweetHandlerRef <! TweetParserMsg(tweet) // tweetParser tweet
         getResponseMessage($"Tweeted Succesfully", [], 2, false)
-    elif status = 0 then
-        getResponseMessage($"Please Login", [], 1, true)
     else
-        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
+        resp
 
 let getTweets username =
-    let status = isUserLoggedIn username
-    if status = 1 then
+    let (resp,status) = isUserLoggedIn username
+    if status then
         let temp = tweetOwner.TryFind(username)
         if temp = None then
             getResponseMessage($"No Tweets", [], 2, false)
@@ -252,14 +276,12 @@ let getTweets username =
             let len = Math.Min(10,temp.Value.Count)
             let res = [for i in 1 .. len do yield(temp.Value.[i-1])]
             getResponseMessage($"Get Tweets done Succesfully", res, 2, false)
-    elif status = 0 then
-        getResponseMessage($"Please Login", [], 1, true)
     else
-        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
+        resp
 
 let getMentions username = 
-    let status = isUserLoggedIn username
-    if status = 1 then
+    let (resp,status) = isUserLoggedIn username
+    if status then
         let temp = mentions.TryFind(username)
         if temp = None then
             getResponseMessage($"No Mentions", [], 2, false)
@@ -271,14 +293,12 @@ let getMentions username =
             let len = Math.Min(10,res.Count)
             let res1 = [for i in 1 .. len do yield(res.[i-1])]
             getResponseMessage($"Get Mentions done Succesfully", res1, 2, false)
-    elif status = 0 then
-        getResponseMessage($"Please Login", [], 1, true)
     else
-        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
+        resp
 
 let getHashTags username hashtag =
-    let status = isUserLoggedIn username
-    if status = 1 then
+    let resp, status = isUserLoggedIn username
+    if status then
         printf "%s" hashtag
         let temp = hashTags.TryFind(hashtag)
         if temp = None then
@@ -287,10 +307,8 @@ let getHashTags username hashtag =
             let len = Math.Min(10,temp.Value.Count)
             let res = [for i in 1 .. len do yield(temp.Value.[i-1])] 
             getResponseMessage($"Get Hashtags done Succesfully", res, 2, false)
-    elif status = 0 then
-        getResponseMessage($"Please Login", [], 1, true)
     else
-        getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true)
+        resp
 
 let registerNewUser (user: Register) =
     printfn "Received Register Request from %s as %A" user.UserName user
@@ -349,7 +367,6 @@ let postResponse (operataion) =
                 input 
                 |> getJsonObject<Follower>
                 |> addFollower 
-    
 
     request (fun context ->
     context.rawForm
@@ -360,32 +377,6 @@ let postResponse (operataion) =
     )
     >=> setMimeType "application/json"
     >=> setCORSHeaders
-
-let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
-    socket {
-        let mutable loop = true
-
-        while loop do
-              let! msg = webSocket.read()
-
-              match msg with
-              | (Text, data, true) ->
-                let str = UTF8.toString data 
-                if str.StartsWith("UserName:") then
-                    let uname = str.Split(':').[1]
-                    websockmap <- websockmap.Add(uname,webSocket)
-                    printfn "connected to %s websocket" uname
-                else
-                    let response = sprintf "response to %s" str
-                    let byteResponse = buildByteResponseToWS response
-                    do! webSocket.send Text byteResponse true
-
-              | (Close, _, _) ->
-                let emptyResponse = [||] |> ByteSegment
-                do! webSocket.send Close emptyResponse true
-                loop <- false
-              | _ -> ()
-    }
 
 
 let allow_cors : WebPart =
