@@ -317,29 +317,27 @@ let newTweetUser (tweet: NewTweet) =
     printfn "Received Tweet Request from %s as %A" tweet.UserName tweet
     addTweetToUser tweet
 
-let gettweets username =
+let setHeaders rspMsg =
+    rspMsg
+    |> JsonConvert.SerializeObject
+    |> OK
+    >=> setMimeType "application/json"
+    >=> setCORSHeaders
+
+let getUserTweets username =
     printfn "Received GetTweets Request from %s " username
     getTweets username
-    |> JsonConvert.SerializeObject
-    |> OK
-    >=> setMimeType "application/json"
-    >=> setCORSHeaders
+    |> setHeaders 
 
-let getmentions username =
+let getUserMentions username =
     printfn "Received GetMentions Request from %s " username
     getMentions username
-    |> JsonConvert.SerializeObject
-    |> OK
-    >=> setMimeType "application/json"
-    >=> setCORSHeaders
-
-let gethashtags username hashtag =
+    |> setHeaders 
+ 
+let getUserHashtags username hashtag =
     printfn "Received GetHashTag Request from %s for hashtag %A" username hashtag
     getHashTags username hashtag
-    |> JsonConvert.SerializeObject
-    |> OK
-    >=> setMimeType "application/json"
-    >=> setCORSHeaders
+    |> setHeaders
 
 let postResponse (operation) =
     let subresponse input = 
@@ -395,9 +393,9 @@ let app =
             GET >=> choose
                 [ 
                 path "/" >=> OK "Server is up and Running" 
-                pathScan "/gettweets/%s" (fun username -> (gettweets username))
-                pathScan "/getmentions/%s" (fun username -> (getmentions username))
-                pathScan "/gethashtags/%s/%s" (fun (username,hashtag) -> (gethashtags username hashtag))
+                pathScan "/gettweets/%s" (fun username -> (getUserTweets username))
+                pathScan "/getmentions/%s" (fun username -> (getUserMentions username))
+                pathScan "/gethashtags/%s/%s" (fun (username,hashtag) -> (getUserHashtags username hashtag))
                 ]
 
             POST >=> choose
