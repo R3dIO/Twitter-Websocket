@@ -259,7 +259,7 @@
         }
         function gethashtags(){
             var hashtag = document.getElementById("hashtag").value;
-            var url = "http://127.0.0.1:8080/gethashtags/"+username+"/"+hashtag;
+            var url = "http://127.0.0.1:8080/search/gethashtags/"+username+"/"+hashtag;
             clearinput();
             $.ajax({
                 type: "GET",
@@ -287,7 +287,7 @@
             });
         }
         function getmentions(){
-            var url = "http://127.0.0.1:8080/getmentions/"+username;
+            var url = "http://127.0.0.1:8080/search/getmentions/"+username;
             clearinput();
             $.ajax({
                 type: "GET",
@@ -314,7 +314,7 @@
             });
         }
         function gettweets(){
-            var url = "http://127.0.0.1:8080/gettweets/"+username;
+            var url = "http://127.0.0.1:8080/search/gettweets/"+username;
             clearinput();
             $.ajax({
                 type: "GET",

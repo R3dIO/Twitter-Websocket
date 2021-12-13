@@ -397,9 +397,9 @@ let app =
                 [ 
                 path "/" >=> OK "Server is up and Running" 
                 path "/home" >=> file "client.html"; browseHome 
-                pathScan "/gettweets/%s" (fun username -> (getUserTweets username))
-                pathScan "/getmentions/%s" (fun username -> (getUserMentions username))
-                pathScan "/gethashtags/%s/%s" (fun (username,hashtag) -> (getUserHashtags username hashtag))
+                pathScan "/search/gettweets/%s" (fun username -> (getUserTweets username))
+                pathScan "/search/getmentions/%s" (fun username -> (getUserMentions username))
+                pathScan "/search/gethashtags/%s/%s" (fun (username,hashtag) -> (getUserHashtags username hashtag))
                 ]
 
             POST >=> choose
