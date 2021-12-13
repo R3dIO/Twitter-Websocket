@@ -235,7 +235,7 @@ let addTweetToFollowers (tweet: NewTweet) =
     let followersList = followersMap.TryFind(tweet.UserName)
     if followersList <> None then
         for follower in followersList.Value do
-            let tweet = {Tweet=tweet.Tweet; UserName=follower}
+            let tweet = {Tweet=tweet.Tweet; UserName=tweet.UserName}
             addTweet tweet
             let followerWSCon = websockMap.TryFind(follower)
             printfn $"Found follower online {follower}"
