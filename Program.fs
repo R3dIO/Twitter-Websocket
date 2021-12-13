@@ -103,29 +103,26 @@ let liveUserActor (mailbox:Actor<_>) =
         let! msg = mailbox.Receive()
         let mutable response = ""
         match msg with
-        |SelfTweet(ws,tweet)->  let response = $"You have tweeted '{tweet.Tweet}'"
-                                let byteResponse = byteResponseToWSRes response
-                                let s = socket { do! ws.send Text byteResponse true }
-                                Async.StartAsTask s |> ignore
+        |SelfTweet(ws,tweet)->  
+                    let response = $"You have tweeted '{tweet.Tweet}'"
+                    let byteResponse = byteResponseToWSRes response 
+                    Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         |SendTweet(ws,tweet)->
-                                let response = $"{tweet.UserName} has recieved tweet '{tweet.Tweet}'"
-                                let byteResponse = byteResponseToWSRes response
-                                let s = socket{ do! ws.send Text byteResponse true}
-                                Async.StartAsTask s |> ignore
-        |SendMention(ws,tweet)->
-                                let response = $"{tweet.UserName} mentioned you in tweet '{tweet.Tweet}'"
-                                let byteResponse = byteResponseToWSRes response
-                                let s = socket{ do! ws.send Text byteResponse true}
-                                Async.StartAsTask s |> ignore
+                    let response = $"{tweet.UserName} has sent tweet '{tweet.Tweet}'"
+                    let byteResponse = byteResponseToWSRes response
+                    Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
+        |SendMention(ws, tweet)->
+                    let response = $"{tweet.UserName} mentioned you in tweet '{tweet.Tweet}'"
+                    let byteResponse = byteResponseToWSRes response
+                    Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         |Following(ws,msg)->
-                                let response = msg
-                                let byteResponse = byteResponseToWSRes response
-                                let s = socket{ do! ws.send Text byteResponse true}
-                                Async.StartAsTask s |> ignore
+                    let response = msg
+                    let byteResponse = byteResponseToWSRes response
+                    Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         return! loop()
     }
     loop()
-let liveUserActorRef = spawn system "luref" liveUserActor
+let liveUserActorRef = spawn system "luar" liveUserActor
 
 let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
     socket {
@@ -140,7 +137,7 @@ let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
                 if strData.StartsWith("UserName:") then
                     let username = strData.Split(':').[1]
                     websockMap <- websockMap.Add(username,webSocket)
-                    printfn $"connected to {username} websocket"
+                    printfn $"Connected to {username} websocket"
                 else
                     let response = $"Response to {strData}"
                     let byteResponse = byteResponseToWSRes response
@@ -178,7 +175,7 @@ let tweetParser (tweet:NewTweet) =
                         mention.Value.Add(tweet.Tweet)
                 let userWSCon = websockMap.TryFind(user)
                 if userWSCon <> None then
-                    liveUserActorRef <! SendMention(userWSCon.Value,tweet)
+                    liveUserActorRef <! SendMention(userWSCon.Value, tweet)
         elif word.StartsWith "#" then
             let hashtags = word.Split '#'
             let hashtagList = hashTagsMap.TryFind(hashtags.[1])
