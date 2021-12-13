@@ -140,7 +140,7 @@
         }
         function register(){
             // console.log("register");
-            var url = "http://127.0.0.1:8080/register";
+            var url = "http://127.0.0.1:8080/user/register";
             var uname = document.getElementById("runame").value;
             var pwd = document.getElementById("rpass").value;
             var data = JSON.stringify({'UserName':uname,"Password":pwd});
@@ -158,7 +158,7 @@
         }
 
         function login(){
-            var url = "http://127.0.0.1:8080/login";
+            var url = "http://127.0.0.1:8080/user/login";
             var uname = document.getElementById("luname").value;
             var pwd = document.getElementById("lpass").value;
             var data = JSON.stringify({'UserName':uname,"Password":pwd});
@@ -191,7 +191,7 @@
             console.log(username)
         }
         function logout(){
-            var url = "http://127.0.0.1:8080/logout";
+            var url = "http://127.0.0.1:8080/user/logout";
             var data = JSON.stringify({'UserName':username});
             clearinput();
             $.ajax({
@@ -206,7 +206,7 @@
             });
         }
         function tweet(){
-            var url = "http://127.0.0.1:8080/newtweet";
+            var url = "http://127.0.0.1:8080/user/newtweet";
             var tweett = document.getElementById("tweet").value;
             var data = JSON.stringify({'Tweet':tweett,'UserName':username});
             clearinput();
@@ -232,7 +232,7 @@
             });
         }
         function follow(){
-            var url = "http://127.0.0.1:8080/follow";
+            var url = "http://127.0.0.1:8080/user/follow";
             var following = document.getElementById("follower").value;
             var data = JSON.stringify({'UserName':username,"Following":following});
             clearinput();

@@ -404,11 +404,11 @@ let app =
 
             POST >=> choose
                 [   
-                path "/register" >=> (fun context -> context |> postResponse("Register"))
-                path "/login" >=> (fun context -> context |> postResponse("Login"))
-                path "/logout" >=> (fun context -> context |> postResponse("Logout"))
-                path "/newtweet" >=> (fun context -> context |> postResponse("NewTweet")) 
-                path "/follow" >=> (fun context -> context |> postResponse("Follow"))
+                path "/user/register" >=> (fun context -> context |> postResponse("Register"))
+                path "/user/login" >=> (fun context -> context |> postResponse("Login"))
+                path "/user/logout" >=> (fun context -> context |> postResponse("Logout"))
+                path "/user/newtweet" >=> (fun context -> context |> postResponse("NewTweet")) 
+                path "/user/follow" >=> (fun context -> context |> postResponse("Follow"))
               ]
 
             NOT_FOUND "404 - No page found."
