@@ -2,20 +2,26 @@
 
 open System
 open System.Collections.Generic
-open Suave
-open Suave.Filters
-open Suave.Operators
-open Suave.Successful
-open Suave.ServerErrors
-open Suave.Writers
 open Newtonsoft.Json
 open Akka.Actor
 open Akka.Configuration
 open Akka.FSharp
 
+open Suave
+open Suave.Http
+open Suave.Filters
+open Suave.Operators
+open Suave.Successful
+open Suave.ServerErrors
+open Suave.Writers
 open Suave.Sockets
 open Suave.Sockets.Control
 open Suave.WebSocket
+open Suave.Files
+open Suave.RequestErrors
+open Suave.Logging
+open Suave.Utils
+
 open Datatype
 
 type LiveUserHandlerMsg =
@@ -390,6 +396,7 @@ let app =
             GET >=> choose
                 [ 
                 path "/" >=> OK "Server is up and Running" 
+                path "/home" >=> file "client.html"; browseHome 
                 pathScan "/gettweets/%s" (fun username -> (getUserTweets username))
                 pathScan "/getmentions/%s" (fun username -> (getUserMentions username))
                 pathScan "/gethashtags/%s/%s" (fun (username,hashtag) -> (getUserHashtags username hashtag))
@@ -404,6 +411,7 @@ let app =
                 path "/follow" >=> (fun context -> context |> postResponse("Follow"))
               ]
 
+            NOT_FOUND "404 - No page found."
         ]
 
 [<EntryPoint>]
