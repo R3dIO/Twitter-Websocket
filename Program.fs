@@ -236,7 +236,7 @@ let addTweetToFollowers (tweet: NewTweet) =
             if followerWSCon <> None then
                 liveUserActorRef <! SendTweet(followerWSCon.Value,tweet)
 
-let tweetHandler (mailbox:Actor<_>) =
+let tweetActor (mailbox:Actor<_>) =
     let rec loop() = actor{
         let! msg = mailbox.Receive()
         match msg with 
@@ -250,14 +250,14 @@ let tweetHandler (mailbox:Actor<_>) =
     }
     loop()
 
-let tweetHandlerRef = spawn system "thref" tweetHandler
+let tweetActorRef = spawn system "thar" tweetActor
 
 let addTweetToUser (tweet: NewTweet) =
     let (resp,status) = isUserLoggedIn tweet.UserName
     if status then
-        tweetHandlerRef <! AddTweetMsg(tweet) // addTweet tweet
-        tweetHandlerRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
-        tweetHandlerRef <! TweetParserMsg(tweet) // tweetParser tweet
+        tweetActorRef <! AddTweetMsg(tweet) // addTweet tweet
+        tweetActorRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
+        tweetActorRef <! TweetParserMsg(tweet) // tweetParser tweet
         getResponseMessage($"Tweeted Succesfully", [], 2, false)
     else
         resp
@@ -282,13 +282,13 @@ let getMentions username =
         if mentionList = None then
             getResponseMessage($"No Mentions", [], 2, false)
         else
-            let res = new List<string>()
-            for i in mentionList.Value do
-                for j in i.Value do
-                    res.Add(j)
-            let len = Math.Min(10,res.Count)
-            let res1 = [for i in 1 .. len do yield(res.[i-1])]
-            getResponseMessage($"Get Mentions done Succesfully", res1, 2, false)
+            let mentionSubList = new List<string>()
+            for mention in mentionList.Value do
+                for tweet in mention.Value do
+                    mentionSubList.Add(tweet)
+            let len = Math.Min(10,mentionSubList.Count)
+            let result = [for i in 1 .. len do yield(mentionSubList.[i-1])]
+            getResponseMessage($"Get Mentions done Succesfully", result, 2, false)
     else
         resp
 
