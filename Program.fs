@@ -63,46 +63,46 @@ let getResponseMessage (comment, content, status, errorStatus) =
     response
 
 let isUserLoggedIn username = 
-    if activeUsersMap.TryFind(username) <> None then // User is Logged In
+    if activeUsersMap.TryFind(username) <> None then 
         (getResponseMessage($"", [], 0, true), true) 
     else 
-        if usersMap.TryFind(username) = None then  // User Doesn't Exsist
-            (getResponseMessage($"User Doesn't Exsist!!Please Register", [], 0, true), false)
-        else // User Exsists but not logged in         
-            (getResponseMessage($"Please Login", [], 1, true), false) 
+        if usersMap.TryFind(username) = None then
+            (getResponseMessage($"User does not exists, please register!", [], 0, true), false)
+        else          
+            (getResponseMessage($"User exists, please login!", [], 1, true), false) 
 
 let addUser (user: Register) =
     if not (checkUserExistance(user.UserName)) then
         usersMap <- usersMap.Add(user.UserName,user.Password)
-        getResponseMessage("User Registerd Succesfully", [], 1, false)
+        getResponseMessage("User has been registered successfully", [], 1, false)
     else
-        getResponseMessage("User Already Registerd", [], 1, true)
+        getResponseMessage("User exists, please login!", [], 1, true)
 
 let loginuser (user: Login) = 
-    printfn $"Received Login Request from {user.UserName} as {user}"  
+    printfn $"Login request received: User: {user.UserName} Password: {user.Password}"  
     if not (checkUserExistance(user.UserName)) then
-        getResponseMessage("User not found. Please Register", [], 0, true)
+        getResponseMessage("User does not exists, please register!", [], 0, true)
     else
         let userObj = usersMap.TryFind(user.UserName)
         if userObj.Value.CompareTo(user.Password) = 0 then
             if not (isOnline(user.UserName)) then
                 activeUsersMap <- activeUsersMap.Add(user.UserName,true)
-                getResponseMessage("Logged In Succesfully", [], 2, false)
+                getResponseMessage("Login successful", [], 2, false)
             else
-                getResponseMessage("Already Logged In", [], 2, true)
+                getResponseMessage("Already logged in", [], 2, true)
         else
-            getResponseMessage("Incorrect Password", [], 1, true)
+            getResponseMessage("Please enter correct password!", [], 1, true)
 
 let logoutuser (user:Logout) = 
-    printfn $"Received Logout Request from {user.UserName} as {user}"  
+    printfn $"Logout request received: User: {user.UserName}"  
     if not (checkUserExistance(user.UserName)) then
-        getResponseMessage("User not found; Please Register ", [], 0, true)
+        getResponseMessage("User does not exists!", [], 0, true)
     else
         if not (isOnline(user.UserName)) then
-            getResponseMessage("User Not Logged In; Please Log In", [], 1, true)
+            getResponseMessage("Please login to continue!", [], 1, true)
         else
             activeUsersMap <- activeUsersMap.Remove(user.UserName)
-            getResponseMessage("User Logged out Succesfully", [], 1, false)
+            getResponseMessage("Logout successful", [], 1, false)
 
 let liveUserActor (mailbox:Actor<_>) = 
     let rec loop() = actor{
@@ -110,15 +110,15 @@ let liveUserActor (mailbox:Actor<_>) =
         let mutable response = ""
         match msg with
         |SelfTweet(ws,tweet)->  
-                    let response = $"You have tweeted '{tweet.Tweet}'"
+                    let response = $"You tweeted '{tweet.Tweet}'"
                     let byteResponse = byteResponseToWSRes response 
                     Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         |SendTweet(ws,tweet)->
-                    let response = $"{tweet.UserName} has sent tweet '{tweet.Tweet}'"
+                    let response = $"{tweet.UserName} sent tweet '{tweet.Tweet}'"
                     let byteResponse = byteResponseToWSRes response
                     Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         |SendMention(ws, tweet)->
-                    let response = $"{tweet.UserName} mentioned you in tweet '{tweet.Tweet}'"
+                    let response = $"{tweet.UserName} tagged you in tweet '{tweet.Tweet}'"
                     let byteResponse = byteResponseToWSRes response
                     Async.StartAsTask (socket { do! ws.send Text byteResponse true }) |> ignore
         |Following(ws,msg)->
@@ -128,7 +128,7 @@ let liveUserActor (mailbox:Actor<_>) =
         return! loop()
     }
     loop()
-let liveUserActorRef = spawn system "luar" liveUserActor
+let liveUserActorRef = spawn system "liveuser" liveUserActor
 
 let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
     socket {
@@ -143,9 +143,9 @@ let websocketHandler (webSocket : WebSocket) (context: HttpContext) =
                 if strData.StartsWith("UserName:") then
                     let username = strData.Split(':').[1]
                     websockMap <- websockMap.Add(username,webSocket)
-                    printfn $"Connected to {username} websocket"
+                    printfn $"{username} connected to websocket"
                 else
-                    let response = $"Response to {strData}"
+                    let response = $"Response: {strData}"
                     let byteResponse = byteResponseToWSRes response
                     do! webSocket.send Text byteResponse true
               | (Close, _, _) ->
@@ -194,7 +194,7 @@ let tweetParser (tweet:NewTweet) =
 
 
 let addFollower (follower: Follower) =
-    printfn "Received Follower Request from %s as %A" follower.UserName follower
+    printfn "Follower request received: %s as %A" follower.UserName follower
     let (resp, status) = isUserLoggedIn follower.UserName
     if status then
         if (checkUserExistance follower.Following) then
@@ -205,20 +205,20 @@ let addFollower (follower: Follower) =
                 lstTweet.Add(follower.UserName)
                 followersMap <- followersMap.Add(follower.Following, lstTweet)
                 if userWSCon <> None then
-                    liveUserActorRef <! Following(userWSCon.Value,$"You are now following: {follower.Following}")
-                getResponseMessage("Sucessfully Added to the Following list", [], 2, false)
+                    liveUserActorRef <! Following(userWSCon.Value,$"You follow: {follower.Following}")
+                getResponseMessage("Added to follow list", [], 2, false)
             else
                 if followersList.Value.Exists( fun x -> x.CompareTo(follower.UserName) = 0 ) then
                     if userWSCon <> None then
-                        liveUserActorRef <! Following(userWSCon.Value,$"You are already following: {follower.Following}")
-                    getResponseMessage($"You are already Following {follower.Following}", [], 2, true)
+                        liveUserActorRef <! Following(userWSCon.Value,$"You already follow: {follower.Following}")
+                    getResponseMessage($"You already follow: {follower.Following}", [], 2, true)
                 else
                     followersList.Value.Add(follower.UserName)
                     if userWSCon <> None then
                         liveUserActorRef <! Following(userWSCon.Value,$"You are now following: {follower.Following}")
-                    getResponseMessage($"Sucessfully Added to the Following list", [], 2, false)
+                    getResponseMessage($"Added to follow list", [], 2, false)
         else
-            getResponseMessage($"Follower {follower.Following} doesn't exsist", [], 2, true)
+            getResponseMessage($"User {follower.Following} doesn't exist!", [], 2, true)
     else
         resp
 
@@ -238,7 +238,7 @@ let addTweetToFollowers (tweet: NewTweet) =
             let tweet = {Tweet=tweet.Tweet; UserName=follower}
             addTweet tweet
             let followerWSCon = websockMap.TryFind(follower)
-            printfn $"Found follower online {follower}"
+            printfn $"{follower} follower is online"
             if followerWSCon <> None then
                 liveUserActorRef <! SendTweet(followerWSCon.Value,tweet)
 
@@ -256,15 +256,15 @@ let tweetActor (mailbox:Actor<_>) =
     }
     loop()
 
-let tweetActorRef = spawn system "thar" tweetActor
+let tweetActorRef = spawn system "tweetuser" tweetActor
 
 let addTweetToUser (tweet: NewTweet) =
     let (resp,status) = isUserLoggedIn tweet.UserName
     if status then
-        tweetActorRef <! AddTweetMsg(tweet) // addTweet tweet
-        tweetActorRef <! AddTweetToFollowersMsg(tweet) // addTweetToFollowers tweet
-        tweetActorRef <! TweetParserMsg(tweet) // tweetParser tweet
-        getResponseMessage($"Tweeted Succesfully", [], 2, false)
+        tweetActorRef <! AddTweetMsg(tweet) 
+        tweetActorRef <! AddTweetToFollowersMsg(tweet) 
+        tweetActorRef <! TweetParserMsg(tweet) 
+        getResponseMessage($"Tweet successful", [], 2, false)
     else
         resp
 
@@ -273,11 +273,11 @@ let getTweets username =
     if status then
         let userTweets = tweetOwnerMap.TryFind(username)
         if userTweets = None then
-            getResponseMessage($"No Tweets", [], 2, false)
+            getResponseMessage($"No tweets found", [], 2, false)
         else
             let len = Math.Min(10,userTweets.Value.Count)
             let res = [for i in 1 .. len do yield(userTweets.Value.[i-1])]
-            getResponseMessage($"Get Tweets done Succesfully", res, 2, false)
+            getResponseMessage($"Tweets get done", res, 2, false)
     else
         resp
 
@@ -286,7 +286,7 @@ let getMentions username =
     if status then
         let mentionList = mentionsMap.TryFind(username)
         if mentionList = None then
-            getResponseMessage($"No Mentions", [], 2, false)
+            getResponseMessage($"No mentions found", [], 2, false)
         else
             let mentionSubList = new List<string>()
             for mention in mentionList.Value do
@@ -294,30 +294,30 @@ let getMentions username =
                     mentionSubList.Add(tweet)
             let len = Math.Min(10,mentionSubList.Count)
             let result = [for i in 1 .. len do yield(mentionSubList.[i-1])]
-            getResponseMessage($"Get Mentions done Succesfully", result, 2, false)
+            getResponseMessage($"Mentions get done", result, 2, false)
     else
         resp
 
 let getHashTags username hashtag =
     let resp, status = isUserLoggedIn username
     if status then
-        printf $"Request to serach for Hashtag {hashtag}"
+        printf $"Request received to search hashtag: {hashtag}"
         let hashTagList = hashTagsMap.TryFind(hashtag)
         if hashTagList = None then
-            getResponseMessage($"No Tweets with this hashtag found", [], 2, false)
+            getResponseMessage($"No Tweets found with hashtag: {hashtag}", [], 2, false)
         else
             let len = Math.Min(10,hashTagList.Value.Count)
             let res = [for i in 1 .. len do yield(hashTagList.Value.[i-1])] 
-            getResponseMessage($"Get Hashtags done Succesfully", res, 2, false)
+            getResponseMessage($"Hashtags get done", res, 2, false)
     else
         resp
 
 let registerNewUser (user: Register) =
-    printfn "Received Register Request from %s as %A" user.UserName user
+    printfn "Register request received: %s as %A" user.UserName user
     addUser user
 
 let newTweetUser (tweet: NewTweet) =
-    printfn "Received Tweet Request from %s as %A" tweet.UserName tweet
+    printfn "Tweet request received: %s as %A" tweet.UserName tweet
     addTweetToUser tweet
 
 let setHeaders rspMsg =
@@ -328,17 +328,17 @@ let setHeaders rspMsg =
     >=> setCORSHeaders
 
 let getUserTweets username =
-    printfn "Received GetTweets Request from %s " username
+    printfn "GetTweets request received: %s " username
     getTweets username
     |> setHeaders 
 
 let getUserMentions username =
-    printfn "Received GetMentions Request from %s " username
+    printfn "GetMentions request received: %s " username
     getMentions username
     |> setHeaders 
  
 let getUserHashtags username hashtag =
-    printfn "Received GetHashTag Request from %s for hashtag %A" username hashtag
+    printfn "GetHashTag request received: %s hashtag: %A" username hashtag
     getHashTags username hashtag
     |> setHeaders
 
@@ -365,7 +365,7 @@ let postResponse (operation) =
                 input 
                 |> getJsonObject<Follower>
                 |> addFollower 
-        | _ -> getResponseMessage("Invalid Operation", [], 0, true)
+        | _ -> getResponseMessage("Operation not found", [], 0, true)
 
     request (fun context ->
     context.rawForm
@@ -384,7 +384,7 @@ let allow_cors : WebPart =
             fun context ->
                 context |> (
                     setCORSHeaders
-                    >=> OK "CORS approved" )
+                    >=> OK "CORS accepted" )
     ]
 
 //setup app routes
@@ -395,7 +395,7 @@ let app =
             allow_cors
             GET >=> choose
                 [ 
-                path "/" >=> OK "Server is up and Running" 
+                path "/" >=> OK "Server started..." 
                 path "/home" >=> file "client.html"; browseHome 
                 pathScan "/search/gettweets/%s" (fun username -> (getUserTweets username))
                 pathScan "/search/getmentions/%s" (fun username -> (getUserMentions username))
@@ -411,7 +411,7 @@ let app =
                 path "/user/follow" >=> (fun context -> context |> postResponse("Follow"))
               ]
 
-            NOT_FOUND "404 - No page found."
+            NOT_FOUND "404 - Page not found!"
         ]
 
 [<EntryPoint>]
