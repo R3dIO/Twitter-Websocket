@@ -24,7 +24,7 @@ open Suave.Utils
 
 open Datatype
 
-type WsLiveUserActorMsg =
+type WebsocketMsg =
     | SendTweetNotification of WebSocket * NewTweet
     | RecieveTweetNotification of WebSocket * NewTweet
     | MentionTweetNotification of WebSocket * NewTweet
@@ -157,9 +157,9 @@ let ParseTweet (tweet:NewTweet) =
             let hashtags = word.Split '#'
             let hashtagList = hashTagsMap.TryFind(hashtags.[1])
             if hashtagList = None then
-                let lstTweet = List<string>()
-                lstTweet.Add(tweet.Tweet)
-                hashTagsMap <- hashTagsMap.Add(hashtags.[1],lstTweet)
+                let tweetList = List<string>()
+                tweetList.Add(tweet.Tweet)
+                hashTagsMap <- hashTagsMap.Add(hashtags.[1],tweetList)
             else
                 hashtagList.Value.Add(tweet.Tweet)
         
@@ -198,9 +198,9 @@ let UpdateFollowers (follower: Follower) =
             let followersList = followersMap.TryFind(follower.Following)
             let userWSCon = websockMap.TryFind(follower.UserName)
             if followersList = None then
-                let lstTweet = new List<string>()
-                lstTweet.Add(follower.UserName)
-                followersMap <- followersMap.Add(follower.Following, lstTweet)
+                let tweetList = new List<string>()
+                tweetList.Add(follower.UserName)
+                followersMap <- followersMap.Add(follower.Following, tweetList)
                 if userWSCon <> None then
                     liveUserActorRef <! FollowingTweetNotification(userWSCon.Value,$"You are folloing: {follower.Following}")
                 getResponseMessage("Added to follow list", [], 2, false)
@@ -222,9 +222,9 @@ let UpdateFollowers (follower: Follower) =
 let UpdateTweets (tweet: NewTweet) =
     let owner = tweetOwnerMap.TryFind(tweet.UserName)
     if owner = None then
-        let lstTweet = new List<string>()
-        lstTweet.Add(tweet.Tweet)
-        tweetOwnerMap <- tweetOwnerMap.Add(tweet.UserName,lstTweet)
+        let tweetList = new List<string>()
+        tweetList.Add(tweet.Tweet)
+        tweetOwnerMap <- tweetOwnerMap.Add(tweet.UserName,tweetList)
     else
         owner.Value.Add(tweet.Tweet)
 
