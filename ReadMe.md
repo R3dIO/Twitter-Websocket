@@ -40,14 +40,17 @@ We implemented Rest APIs and websockets using Sauve webframework in F#.
   - Hashtags: Returns all tweets with the hashtag text user requested. 
   - Mentions: Returns all tweets where the user is tagged or mentioned. 
 
-After these messages are created, respective actor handles the message and performs action on them.
+After these requests are created, respective actor handles the message and performs action on them.
+
+![RestApis](./resources/rest%20apis.png)
 
 ### Websocket Implementation
-- The actor WebsocketHandler manages the websocket connection initiated by client. 
-- 
+- For connecting to websocket, we exposed an endpoint "/websocket" which in turn intiates the websockethandler.
+- The actor WebsocketHandler manages the websocket connection initiated by the client. 
+- We send an ajax request on login to that endpoint to start connection with websocket. 
 
 ### Request and Response formats
-| Request Type | Request Endpoint | Request parameters | Response body | Response comments |
+| Request Type | Request Endpoint | Request parameters | Response body | Response message |
 |-----------|--------------|----------------|----------------|----------------|
 | POST | /register | { Username: < username >, Password: < password > } | | Success/Failure |
 | POST | /login | { Username: < username >, Password: < password > } | | Success/Incorrect password/New user |
