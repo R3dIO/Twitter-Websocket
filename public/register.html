@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<style>
+    p {
+        margin: 0;
+    }
+
+    h1 {
+        margin: 0;
+    }
+
+    .main {
+        margin-left: 0px;
+        margin-bottom: 0;
+        height: max-content;
+    }
+
+    .title-bar {
+        background: #12B0FB
+    }
+
+    .bottom {
+        margin-top: auto;
+        height: max-content;
+        text-align: center;
+        background: #12B0FB
+    }
+
+    .title {
+        font-weight: bold;
+        font-size: xx-large;
+        margin-left: 30px;
+    }
+
+    .logo-image {
+        height: fit-content;
+        width: fit-content;
+        margin-bottom: 0;
+    }
+
+    .register {
+        float: inline-end;
+        margin-top: 20px;
+        margin-right: 30%;
+        font-size: larger;
+    }
+
+    .rather-login {
+        font-size: medium;
+    }
+
+    .err {
+        background: #ffe6ee;
+        border: 1px solid #b1395f;
+    }
+
+    .emsg {
+        color: #c12020;
+        font-weight: bold;
+        font-size: medium;
+    }
+
+    .btn {
+        font-weight: bold !important;
+        background-color: #12B0FB !important;
+    }
+</style>
+
+<head>
+    <title>Twitter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
+    <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- <link rel='stylesheet' type='text/css' href='yourcssfile.css'> -->
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <!-- <script type="text/javascript" src="client.js"></script> -->
+</head>
+
+<body class="body">
+    <nav>
+        <div class="title-bar">
+            <a class="title" href="#">Twitter</a>
+        </div>
+    </nav>
+
+    <div id="main" class="main">
+        <img class="logo-image" src="/logo" alt="logo">
+        <div class="register">
+            <table class="table" id="reglogin">
+                <tbody>
+                    <tr class="row1">
+                        <td class="col1">
+                            <div id="register">
+                                <label for="runame">User Name:</label>
+                                <input type="text" id="runame" name="fname" required><br><br>
+                                <label for="rpass">Password:</label>
+                                <input type="password" id="rpass" name="pwd" required><br><br>
+                                <button class="btn waves-effect waves-light" type="submit" name="action"
+                                    onclick="register()">Register</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="rather-login">
+                <p>Already a User?</p>
+                <a href="/home">Login</a>
+            </div>
+        </div>
+    </div>
+
+    <nav>
+        <div class="bottom">
+            <p>Project by Pratiksha and Anuj. Image by https://thenounproject.com/igadwi00/</p>
+        </div>
+    </nav>
+
+    <script type="text/javascript">
+        function clearinput() {
+            var elements = document.getElementsByTagName("input");
+            for (var ii = 0; ii < elements.length; ii++) {
+                elements[ii].value = "";
+            }
+            elements = document.getElementsByTagName("textarea");
+            for (var ii = 0; ii < elements.length; ii++) {
+                elements[ii].value = "";
+            }
+        }
+
+        function register() {
+            // console.log("register");
+            var url = "http://127.0.0.1:8080/user/register";
+            var uname = document.getElementById("runame").value;
+            var pwd = document.getElementById("rpass").value;
+            var data = JSON.stringify({ 'UserName': uname, "Password": pwd });
+            clearinput();
+            $.ajax({
+                type: "POST",
+                url: url,
+                data: data,
+                dataType: "json",
+                success: function (data) {
+                    alert(data.Comment);
+                    document.location.href = "/home";
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

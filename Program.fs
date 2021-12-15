@@ -396,7 +396,10 @@ let app =
             GET >=> choose
                 [ 
                 path "/" >=> OK "Server started..." 
-                path "/home" >=> file "client.html"; browseHome 
+                path "/home" >=> file "public/index.html";
+                path "/register" >=> file "public/register.html"; 
+                path "/user" >=> file "public/user.html";
+                path "/logo" >=> file "resources/tweet.png";
                 pathScan "/search/gettweets/%s" (fun username -> (getUserTweets username))
                 pathScan "/search/getmentions/%s" (fun username -> (getUserMentions username))
                 pathScan "/search/gethashtags/%s/%s" (fun (username,hashtag) -> (getUserHashtags username hashtag))
@@ -410,7 +413,6 @@ let app =
                 path "/user/newtweet" >=> (fun context -> context |> postResponse("NewTweet")) 
                 path "/user/follow" >=> (fun context -> context |> postResponse("Follow"))
               ]
-
             NOT_FOUND "404 - Page not found!"
         ]
 
