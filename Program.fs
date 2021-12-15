@@ -366,21 +366,20 @@ let postResponse (operation) =
     >=> setCORSHeaders
 
 
-let allow_cors : WebPart =
-    choose [
-        OPTIONS >=>
-            fun context ->
-                context |> (
-                    setCORSHeaders
-                    >=> OK "CORS accepted" )
-    ]
-
 //setup app routes
 let app =
     choose
         [ 
             path "/websocket" >=> handShake websocketHandler 
-            allow_cors
+
+            choose [
+                OPTIONS >=>
+                    fun context ->
+                        context |> (
+                            setCORSHeaders
+                            >=> OK "CORS accepted" )
+            ]
+
             GET >=> choose
                 [ 
                 path "/" >=> OK "Server started..." 
