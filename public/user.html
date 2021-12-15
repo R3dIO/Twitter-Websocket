@@ -172,6 +172,7 @@
             <h4>User Feed</h4>
         </div>
     </div>
+
     <script type="text/javascript">
         var username = ""
         window.onload = function () {
@@ -249,7 +250,6 @@
                 data: data,
                 dataType: "json",
                 success: function (data) {
-
                     if (data.error) {
                         alert(data.Comment);
                         if (data.status < 2) {
@@ -268,7 +268,6 @@
                 url: url,
                 dataType: "json",
                 success: function (data) {
-
                     if (data.error) {
                         alert(data.Comment);
                         if (data.status < 2) {
@@ -281,8 +280,6 @@
                         }
                         document.getElementById("gethashtags").value = text
                     }
-
-
                 }
             });
         }
@@ -306,8 +303,6 @@
                         }
                         document.getElementById("getmentions").value = text
                     }
-
-
                 }
             });
         }
@@ -347,9 +342,7 @@
 
         function onOpen(evt) {
             writeToScreen("Live feed turned on");
-            // doSend("WebSocket rocks");
             var message = "UserName:" + username;
-            // alert(message)
             doSend(message);
         }
 
@@ -364,20 +357,16 @@
         function onError(evt) {
             writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
         }
-
         function doSend(message) {
-            // writeToScreen("SENT: " + message);
-            console.log("sending " + message);
+            console.log("Sending " + message);
             websocket.send(message);
         }
-
         function writeToScreen(message) {
             var pre = document.createElement("p");
             pre.style.wordWrap = "break-word";
             pre.innerHTML = message;
             output.appendChild(pre);
         }
-        // application code here!
 
     </script>
 </body>
