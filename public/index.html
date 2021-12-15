@@ -151,7 +151,7 @@
 
         function login() {
             var url = "http://127.0.0.1:8080/user/login";
-            var user_name = document.getElementById("username").value;
+            var uname = document.getElementById("username").value;
             var pwd = document.getElementById("lpass").value;
             var data = JSON.stringify({ 'UserName': user_name, "Password": pwd });
             var error = document.getElementById("loginerror");
@@ -164,8 +164,8 @@
                 success: function (data) {
                     if (data.error) {
                         error.innerHTML = data.Comment;
-                        if (data.status != 0) {
-                            username = user_name;
+                        if (data.status != 200) {
+                            username = uname;
                             alert(data.Comment);
                         }
                     } else {
