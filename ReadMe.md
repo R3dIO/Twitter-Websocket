@@ -47,7 +47,11 @@ After these requests are created, respective actor handles the message and perfo
 ### Websocket Implementation
 - For connecting to websocket, we exposed an endpoint "/websocket" which in turn intiates the websockethandler.
 - The actor WebsocketHandler manages the websocket connection initiated by the client. 
-- We send an ajax request on login to that endpoint to start connection with websocket. 
+- When a user login is succeeded, we send an ajax request on load of next page to the websocket endpoint to start connection with websocket.
+
+![RestApis](./resources/initiate%20handler.png)
+
+![RestApis](./resources/websocket%20function.png)
 
 ### Request and Response formats
 | Request Type | Request Endpoint | Request parameters | Response body | Response message |

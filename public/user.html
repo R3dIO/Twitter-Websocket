@@ -170,7 +170,7 @@
         window.onload = function () {
             var url = document.location.href
             username = url.split('?')[1].split('=')[1]
-            startWebSocket()
+            intiateWebSocketHandler()
         }
 
         function gotologin() {
@@ -334,27 +334,26 @@
             pre.innerHTML = message;
             output.appendChild(pre);
         }
-        function startWebSocket() {
+        function intiateWebSocketHandler() {
             var wsUri = "ws://localhost:8080/websocket";
             websocket = new WebSocket(wsUri);
             output = document.getElementById("userfeed");
-            websocket.onopen = function (evt) { 
+            websocket.onopen = function () { 
                 updateFeed("Live feed turned on");
                 var message = "UserName:" + username;
                 console.log("Sending " + message);
                 websocket.send(message);            
             };
-            websocket.onclose = function (evt) {             
+            websocket.onclose = function () {             
                 updateFeed("Live feed turned off");
              };
-            websocket.onmessage = function (evt) { 
-                updateFeed('<span style="color: #00BFFF;"> ' + evt.data + '</span>');
+            websocket.onmessage = function (event) { 
+                updateFeed('<span style="color: #00BFFF;"> ' + event.data + '</span>');
              };
-            websocket.onerror = function (evt) { 
-                updateFeed('<span style="color: red;">ERROR:</span> ' + evt.data);
+            websocket.onerror = function (event) { 
+                updateFeed('<span style="color: red;">ERROR:</span> ' + event.data);
              };
         }
-
     </script>
 </body>
 
