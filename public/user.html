@@ -168,7 +168,7 @@
                 </tbody>
             </table>
         </div>
-        <div id="output" class="live-feed">
+        <div id="userfeed" class="live-feed">
             <h4>User Feed</h4>
         </div>
     </div>
@@ -202,8 +202,9 @@
             }
         }
 
+        let basepath = "http://127.0.0.1:8080/"
         function logout() {
-            var url = "http://127.0.0.1:8080/user/logout";
+            var url = basepath + "user/logout";
             var data = JSON.stringify({ 'UserName': username });
             clearinput();
             $.ajax({
@@ -217,7 +218,7 @@
             });
         }
         function tweet() {
-            var url = "http://127.0.0.1:8080/user/newtweet";
+            var url = basepath + "user/newtweet";
             var tweet = document.getElementById("tweet").value;
             var data = JSON.stringify({ 'Tweet': tweet, 'UserName': username });
             console.log(data)
@@ -228,7 +229,6 @@
                 data: data,
                 dataType: "json",
                 success: function (data) {
-
                     if (data.error) {
                         alert(data.Comment);
                         if (data.status < 2) {
@@ -240,7 +240,7 @@
             });
         }
         function follow() {
-            var url = "http://127.0.0.1:8080/user/follow";
+            var url = basepath + "user/follow";
             var following = document.getElementById("follower").value;
             var data = JSON.stringify({ 'UserName': username, "Following": following });
             clearinput();
@@ -261,7 +261,7 @@
         }
         function gethashtags() {
             var hashtag = document.getElementById("hashtag").value;
-            var url = "http://127.0.0.1:8080/search/gethashtags/" + username + "/" + hashtag;
+            var url = basepath + "search/gethashtags/" + username + "/" + hashtag;
             clearinput();
             $.ajax({
                 type: "GET",
@@ -284,7 +284,7 @@
             });
         }
         function getmentions() {
-            var url = "http://127.0.0.1:8080/search/getmentions/" + username;
+            var url = basepath + "search/getmentions/" + username;
             clearinput();
             $.ajax({
                 type: "GET",
@@ -307,7 +307,7 @@
             });
         }
         function gettweets() {
-            var url = "http://127.0.0.1:8080/search/gettweets/" + username;
+            var url = basepath + "search/gettweets/" + username;
             clearinput();
             $.ajax({
                 type: "GET",
@@ -329,43 +329,33 @@
                 }
             });
         }
+
         var output;
-        function startWebSocket() {
-            var wsUri = "ws://localhost:8080/websocket";
-            websocket = new WebSocket(wsUri);
-            output = document.getElementById("output");
-            websocket.onopen = function (evt) { onOpen(evt) };
-            websocket.onclose = function (evt) { onClose(evt) };
-            websocket.onmessage = function (evt) { onMessage(evt) };
-            websocket.onerror = function (evt) { onError(evt) };
-        }
-
-        function onOpen(evt) {
-            writeToScreen("Live feed turned on");
-            var message = "UserName:" + username;
-            doSend(message);
-        }
-
-        function onClose(evt) {
-            writeToScreen("Live feed turned off");
-        }
-
-        function onMessage(evt) {
-            writeToScreen('<span style="color: blue;"> ' + evt.data + '</span>');
-        }
-
-        function onError(evt) {
-            writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
-        }
-        function doSend(message) {
-            console.log("Sending " + message);
-            websocket.send(message);
-        }
-        function writeToScreen(message) {
+        function updateFeed(message) {
             var pre = document.createElement("p");
             pre.style.wordWrap = "break-word";
             pre.innerHTML = message;
             output.appendChild(pre);
+        }
+        function startWebSocket() {
+            var wsUri = "ws://localhost:8080/websocket";
+            websocket = new WebSocket(wsUri);
+            output = document.getElementById("userfeed");
+            websocket.onopen = function (evt) { 
+                updateFeed("Live feed turned on");
+                var message = "UserName:" + username;
+                console.log("Sending " + message);
+                websocket.send(message);            
+            };
+            websocket.onclose = function (evt) {             
+                updateFeed("Live feed turned off");
+             };
+            websocket.onmessage = function (evt) { 
+                updateFeed('<span style="color: #00BFFF;"> ' + evt.data + '</span>');
+             };
+            websocket.onerror = function (evt) { 
+                updateFeed('<span style="color: red;">ERROR:</span> ' + evt.data);
+             };
         }
 
     </script>
