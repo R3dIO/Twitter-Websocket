@@ -47,20 +47,22 @@ After these requests are created, respective actor handles the message and perfo
 ### Websocket Implementation
 - For connecting to websocket, we exposed an endpoint "/websocket" which in turn intiates the websockethandler.
 - The actor WebsocketHandler manages the websocket connection initiated by the client. 
-- When a user login is succeeded, we send an ajax request on load of next page to the websocket endpoint to start connection with websocket.
+- When a user is authenticated and login is succeeded, we use window.load to call method intiateWebSocketHandler() which sends request to websocket endpoint and starts the connection with websocket.
 
 ![RestApis](./resources/initiate%20handler.png)
 
 ![RestApis](./resources/websocket%20function.png)
 
 ### Request and Response formats
-| Request Type | Request Endpoint | Request parameters | Response body | Response message |
-|-----------|--------------|----------------|----------------|----------------|
-| POST | /register | { Username: < username >, Password: < password > } | | Success/Failure |
-| POST | /login | { Username: < username >, Password: < password > } | | Success/Incorrect password/New user |
-| POST | /logout | { Username: < username > } | | Success/Not logged in/New user |
-| POST | /newtweet | { Username: < username >, Tweet: < tweet text > } | | Success/Not logged in/New user |
-| POST | /follow | { Username: < username >, Following: < follow user > } | | Success/Not logged in/New user/Follower does not exist/Already Following |
-| GET | /gettweets/username | | { tweet1, tweet2... } | Success/Not logged in/New user |
-| GET | /gethashtags/username/hashtag | | hashtags in { tweet1, tweet2... } | Success/Not logged in/New user |
-| GET | /getmentions/username | | mentions in { tweet1, tweet2... } | Success/Not logged in/New user |
+| Request Type | Request Endpoint | Request parameters | Response body | Response message | Error codes |
+|--------------|------------------|--------------------|---------------|------------------|-------------|
+| POST | /register | { Username: < username >, Password: < password > } | | Success/Failure | 200/400 |
+| POST | /login | { Username: < username >, Password: < password > } | | Success/Incorrect password/New user | 200/402/400 |
+| POST | /logout | { Username: < username > } | | Success/Not logged in/New user | 200/402/400 |
+| POST | /newtweet | { Username: < username >, Tweet: < tweet text > } | | Success/Not logged in/New user | 200/402/400 |
+| POST | /follow | { Username: < username >, Following: < follow user > } | | Success/Not logged in/New user/Follower does not exist/Already Following | 200/402/400 |
+| GET | /gettweets/username | | { tweet1, tweet2... } | Success/Not logged in/New user | 200/402/400 |
+| GET | /gethashtags/username/hashtag | | hashtags in { tweet1, tweet2... } | Success/Not logged in/New user | 200/402/400 |
+| GET | /getmentions/username | | mentions in { tweet1, tweet2... } | Success/Not logged in/New user | 200/402/400 |
+
+## Demo
