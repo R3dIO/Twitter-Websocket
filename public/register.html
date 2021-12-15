@@ -95,10 +95,10 @@
                     <tr class="row1">
                         <td class="col1">
                             <div id="register">
-                                <label for="runame">User Name:</label>
-                                <input type="text" id="runame" name="fname" required><br><br>
-                                <label for="rpass">Password:</label>
-                                <input type="password" id="rpass" name="pwd" required><br><br>
+                                <label for="username">User Name:</label>
+                                <input type="text" id="username" name="fname" required><br><br>
+                                <label for="password">Password:</label>
+                                <input type="password" id="password" name="pwd" required><br><br>
                                 <button class="btn waves-effect waves-light" type="submit" name="action"
                                     onclick="register()">Register</button>
                             </div>
@@ -134,9 +134,9 @@
         function register() {
             // console.log("register");
             var url = "http://127.0.0.1:8080/user/register";
-            var uname = document.getElementById("runame").value;
-            var pwd = document.getElementById("rpass").value;
-            var data = JSON.stringify({ 'UserName': uname, "Password": pwd });
+            var username = document.getElementById("username").value;
+            var pwd = document.getElementById("password").value;
+            var data = JSON.stringify({ 'UserName': username, "Password": pwd });
             clearinput();
             $.ajax({
                 type: "POST",

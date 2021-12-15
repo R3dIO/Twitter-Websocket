@@ -95,8 +95,8 @@
                     <tr class="row1">
                         <td class="col1">
                             <div id="login">
-                                <label for="luname">User Name:</label>
-                                <input type="text" id="luname" name="fname" required><br><br>
+                                <label for="username">User Name:</label>
+                                <input type="text" id="username" name="fname" required><br><br>
                                 <label for="lpass">Password:</label>
                                 <input type="password" id="lpass" name="pwd" required><br><br>
                                 <button class="btn waves-effect waves-light" type="submit" name="action"
@@ -135,9 +135,9 @@
 
         function login() {
             var url = "http://127.0.0.1:8080/user/login";
-            var uname = document.getElementById("luname").value;
+            var user_name = document.getElementById("username").value;
             var pwd = document.getElementById("lpass").value;
-            var data = JSON.stringify({ 'UserName': uname, "Password": pwd });
+            var data = JSON.stringify({ 'UserName': user_name, "Password": pwd });
             var error = document.getElementById("loginerror");
             clearinput();
             $.ajax({
@@ -149,12 +149,12 @@
                     if (data.error) {
                         error.innerHTML = data.Comment;
                         if (data.status != 0) {
-                            username = uname;
+                            username = user_name;
                             alert(data.Comment);
                         }
                     } else {
-                        username = uname;
-                        document.location.href = "/user?username=" + uname;
+                        username = user_name;
+                        document.location.href = "/user?username=" + user_name;
                     }
                 }
             });
