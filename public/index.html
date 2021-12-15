@@ -64,6 +64,22 @@
         font-weight: bold !important;
         background-color: #12B0FB !important;
     }
+
+    #nav {
+    width: 100%;
+    display: inline-block;
+    text-align: center;
+    padding: 0;
+    list-style: none;
+    background-color: #f2f2f2;
+    border-bottom: 1px solid #ccc;
+    border-top: 1px solid #ccc;  
+
+    }
+    #nav li {
+    display: inline-block;
+    text-align:center; 
+    }
 </style>
 
 <head>
@@ -82,12 +98,15 @@
 
 <body class="body">
     <nav>
-        <div class="title-bar">
-            <a class="title" href="#">Twitter</a>
+        <div class="title-bar" >
+            <div class="title ">
+                <a class="active" href="#">Twitter</a>
+            </div>
         </div>
     </nav>
 
     <div id="main" class="main">
+        <!-- <link rel = "icon" href = "/logo" type = "image/x-icon"> -->
         <img class="logo-image" src="/logo" alt="logo">
         <div class="login">
             <table class="table" id="reglogin">
