@@ -20,6 +20,7 @@
     }
 
     .title-bar {
+        text-align: center;
         background: #12B0FB
     }
 
@@ -80,21 +81,18 @@
     <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.9.0.js"></script>
     <script src="http://ajax.aspnetcdn.com/ajax/knockout/knockout-2.2.1.js"></script>
-    <!-- <script src="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script> -->
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Compiled and minified CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
 </head>
 
 <body class="body">
     <nav>
         <div class="title-bar">
-            <i class="chevron_right"><a href="#" class="title"> Twitter Clone</a></i>
+            <a href="#" class="title"> Twitter Clone</a>
             <ul id="nav-mobile" class="right hide-on-med-and-down">
                 <li><button class="btn waves-effect waves-light btn-flat" type="submit" name="action" id="logouthead"
                         onclick="logout()">Logout</button></li>
@@ -110,7 +108,6 @@
                         <tr class="row">
                             <td class="col-sm">
                                 <div id="divtweet">
-                                    <label for="tweet">New Tweet:</label>
                                     <input placeholder="Share Something New" type="text" id="tweet" name="tweet"><br><br>
                                     <button class="btn btn-large waves-effect waves-light" type="submit" name="tweet"
                                         onclick="tweet()">Send Tweet <i class="material-icons right"></i></button>
@@ -118,7 +115,6 @@
                             </td>
                             <td class="col-sm">
                                 <div id="divfollower">
-                                    <label for="follower">Follow User:</label>
                                     <input placeholder="Find Interesting People" type="text" id="follower" name="follower"><br><br>
                                     <button class="btn btn-large waves-effect waves-light" type="submit" name="follow"
                                         onclick="follow()">Follow User</button>
@@ -131,9 +127,8 @@
                         <tr class="row">
                             <td class="col-sm">
                                 <div id="GetTweets">
-                                    <label for="gettweets">Tweets:</label><br>
                                     <textarea class="materialize-textarea" id="gettweets" name="gettweets" rows="7" cols="50" disabled
-                                        style="height: 30%;"></textarea><br><br>
+                                        style="height: 30%;" placeholder="Tweets"></textarea><br><br>
                                     <div id="dtweets"></div>
                                     <button class="btn btn-large waves-effect waves-light" type="submit" name="gettweets"
                                         onclick="gettweets()">My Tweets</button>
@@ -141,9 +136,8 @@
                             </td>
                             <td class="col-sm">
                                 <div id="GetMentions">
-                                    <label for="getmentions">Mentions:</label>
                                     <textarea class="materialize-textarea" id="getmentions" name="getmentions" rows="7" cols="50" disabled
-                                        style="height: 30%;"></textarea><br><br>
+                                        style="height: 30%;" placeholder="Mentions"></textarea><br><br>
                                     <button class="btn btn-large waves-effect waves-light" type="submit" name="getmentions"
                                         onclick="getmentions()">Find Your Mentions</button>
                                 </div>
@@ -156,10 +150,8 @@
                 <tbody>
                     <td class="col-sm">
                         <div id="GetHashTags">
-                            <label for="gethashtags">Hashtags:</label>
                             <textarea class="materialize-textarea"  id="gethashtags" name="gethashtags" rows="7" cols="50" disabled
-                                style="height: auto;"></textarea><br>
-                            <label for="hashtag">Hashtag</label>
+                                style="height: auto;" placeholder="Hashtags"></textarea><br>
                             <input placeholder="Search Interesting Topics" type="text" id="hashtag" name="hashtag"><br>
                             <button class="btn btn-large waves-effect waves-light" type="submit" name="gethashtags"
                                 onclick="gethashtags()">Search HashTags</button>
